@@ -1,3 +1,4 @@
+import json
 from typing import Dict, List, Optional, Tuple, Any
 import nbformat
 from nbformat import NotebookNode
@@ -91,9 +92,7 @@ class NotebookManager:
         except StopIteration:
             return False
 
-    def execute_notebook(
-        self, parameters: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[int, List[Dict[str, Any]]], NotebookNode]:
+    def execute_notebook(self, parameters: Optional[Dict[str, Any]] = None) -> str:
         """Execute the notebook and return results
 
         Args:
@@ -113,14 +112,9 @@ class NotebookManager:
         # Execute the notebook
         client = NotebookClient(self.notebook, timeout=600)
         executed_nb: NotebookNode = client.execute()
-
-        # Collect results
-        results: Dict[int, List[Dict[str, Any]]] = {}
-        for cell in executed_nb.cells:
-            if cell.cell_type == "code" and hasattr(cell, "outputs"):
-                results[cell.execution_count] = cell.outputs
-
-        return results, executed_nb
+        # for now let's return the executed notebook as a JSON string
+        # later this will be changed to return the results in a more structured way, inlcuding images etc
+        return json.dumps(executed_nb.dict())
 
     def save_notebook(self, path: Optional[str] = None) -> None:
         """Save the notebook to file
