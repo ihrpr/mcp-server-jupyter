@@ -1,8 +1,10 @@
 import json
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, Optional, Any
 import nbformat
 from nbformat import NotebookNode
 from nbclient import NotebookClient
+
+from mcp_server_jupyter.notebook import NotebookCell
 
 
 class NotebookManager:
@@ -11,12 +13,11 @@ class NotebookManager:
         with open(notebook_path) as f:
             self.notebook: NotebookNode = nbformat.read(f, as_version=4)
 
-    def get_notebook_details(self) -> str:
+    def get_notebook_details(self) -> list[NotebookCell]:
         """Get details of the notebook"""
         """Format the notebook"""
-        # for now let's return the executed notebook as a JSON string
-        # later this will be changed to return the results in a more structured way, inlcuding images etc
-        return json.dumps(self.notebook.dict())
+
+        return self._parse_notebook(self.notebook)
 
     def get_cell_by_index(self, cell_index: int) -> NotebookNode:
         """Get a cell by its index"""
@@ -136,7 +137,7 @@ class NotebookManager:
 
     def execute_cell_by_id(
         self, cell_id: str, parameters: Optional[Dict[str, Any]] = None
-    ) -> str:
+    ) -> list[NotebookCell]:
         """Execute a single cell in the notebook by its ID and return its results
 
         Args:
@@ -161,11 +162,11 @@ class NotebookManager:
         client = NotebookClient(self.notebook, timeout=600)
         with client.setup_kernel():
             executed_cell = client.execute_cell(target_cell, cell_index)
-            return json.dumps(executed_cell.dict())
+            return self._parse_notebook(executed_cell)
 
     def execute_cell_by_index(
         self, cell_index: int, parameters: Optional[Dict[str, Any]] = None
-    ) -> str:
+    ) -> list[NotebookCell]:
         """Execute a single cell in the notebook by its index and return its results
 
         Args:
@@ -188,3 +189,19 @@ class NotebookManager:
         save_path: str = path or self.notebook_path
         with open(save_path, "w") as f:
             nbformat.write(self.notebook, f)
+
+    def _parse_notebook(self, notebook: NotebookNode) -> list[NotebookCell]:
+        """Parse a Jupyter notebook JSON string into a list of NotebookCell objects."""
+        try:
+            cells = []
+            # NotebookCell is an object that is retured from a single cell execution
+            # as well as representing the entire notebook
+            if "cells" not in notebook:
+                cells.append(NotebookCell.from_dict(notebook))
+                return cells
+
+            for cell_data in notebook.cells:
+                cells.append(NotebookCell.from_dict(cell_data))
+            return cells
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid notebook JSON: {str(e)}")
