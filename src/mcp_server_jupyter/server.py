@@ -1,6 +1,7 @@
 from typing import Dict
 from mcp.server.fastmcp import FastMCP
-from notebook_manager import NotebookManager
+
+from mcp_server_jupyter.notebook_manager import NotebookManager
 
 mcp = FastMCP("Jupyter notebook manager")
 
