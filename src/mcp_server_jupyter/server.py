@@ -7,6 +7,13 @@ mcp = FastMCP("Jupyter notebook manager")
 
 
 @mcp.tool()
+def read_notebook(notebook_path: str) -> int:
+    """Read the notebook specified by notebook_path."""
+    nb_manager = NotebookManager(notebook_path)
+    return nb_manager.get_notebook_details()
+
+
+@mcp.tool()
 def add_cell(
     notebook_path: str, cell_type: str = "code", source: str = "", position: int = -1
 ) -> int:

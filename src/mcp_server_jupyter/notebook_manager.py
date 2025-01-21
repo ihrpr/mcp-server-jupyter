@@ -11,6 +11,13 @@ class NotebookManager:
         with open(notebook_path) as f:
             self.notebook: NotebookNode = nbformat.read(f, as_version=4)
 
+    def get_notebook_details(self) -> str:
+        """Get details of the notebook"""
+        """Format the notebook"""
+        # for now let's return the executed notebook as a JSON string
+        # later this will be changed to return the results in a more structured way, inlcuding images etc
+        return json.dumps(self.notebook.dict())
+
     def add_cell(
         self, cell_type: str = "code", source: str = "", position: int = -1
     ) -> int:
@@ -111,10 +118,8 @@ class NotebookManager:
 
         # Execute the notebook
         client = NotebookClient(self.notebook, timeout=600)
-        executed_nb: NotebookNode = client.execute()
-        # for now let's return the executed notebook as a JSON string
-        # later this will be changed to return the results in a more structured way, inlcuding images etc
-        return json.dumps(executed_nb.dict())
+        client.execute()
+        return self.get_notebook_details()
 
     def save_notebook(self, path: Optional[str] = None) -> None:
         """Save the notebook to file
