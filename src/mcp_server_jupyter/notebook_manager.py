@@ -18,6 +18,24 @@ class NotebookManager:
         # later this will be changed to return the results in a more structured way, inlcuding images etc
         return json.dumps(self.notebook.dict())
 
+    def get_cell_by_index(self, cell_index: int) -> NotebookNode:
+        """Get a cell by its index"""
+        if not 0 <= cell_index < len(self.notebook.cells):
+            raise ValueError(f"Cell index {cell_index} is out of range")
+
+        # Get the target cell
+        return self.notebook.cells[cell_index]
+
+    def get_cell_by_id(self, cell_id: str) -> NotebookNode:
+        """Get a cell by its unique ID"""
+        try:
+            # Find cell by ID
+            return next(
+                cell for cell in self.notebook.cells if cell.get("id") == cell_id
+            )
+        except StopIteration:
+            raise ValueError(f"No cell found with ID {cell_id}")
+
     def add_cell(
         self, cell_type: str = "code", source: str = "", position: int = -1
     ) -> int:
@@ -63,11 +81,8 @@ class NotebookManager:
         """
         try:
             # Get index by cell ID
-            cell_index: int = next(
-                index
-                for index, cell in enumerate(self.notebook.cells)
-                if cell.get("id") == id
-            )
+            cell = self.get_cell_by_id(id)
+            cell_index = self.notebook.cells.index(cell)
             self.notebook.cells.pop(cell_index)
             return True
         except StopIteration:
@@ -86,9 +101,7 @@ class NotebookManager:
         """
         try:
             # Find cell by ID
-            cell: NotebookNode = next(
-                cell for cell in self.notebook.cells if cell.get("id") == id
-            )
+            cell = self.get_cell_by_id(id)
 
             # Update only if it's a code cell
             if cell.cell_type == "code":
@@ -120,6 +133,50 @@ class NotebookManager:
         client = NotebookClient(self.notebook, timeout=600)
         client.execute()
         return self.get_notebook_details()
+
+    def execute_cell_by_id(
+        self, cell_id: str, parameters: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Execute a single cell in the notebook by its ID and return its results
+
+        Args:
+            cell_id: ID of the cell to execute
+            parameters: Optional dictionary of parameters to update in the notebook
+
+        Returns:
+            Output of the executed cell
+        """
+        # Find the cell with matching ID
+        target_cell = self.get_cell_by_id(cell_id)
+        cell_index = self.notebook.cells.index(target_cell)
+
+        # Update parameters if provided and if it's a parameters cell
+        if (
+            parameters
+            and target_cell.cell_type == "code"
+            and "parameters" in target_cell.metadata
+        ):
+            target_cell.source = f"params = {parameters}"
+
+        client = NotebookClient(self.notebook, timeout=600)
+        with client.setup_kernel():
+            executed_cell = client.execute_cell(target_cell, cell_index)
+            return json.dumps(executed_cell.dict())
+
+    def execute_cell_by_index(
+        self, cell_index: int, parameters: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Execute a single cell in the notebook by its index and return its results
+
+        Args:
+            cell_index: Index of the cell to
+            parameters: Optional dictionary of parameters to update in the notebook
+
+        Returns:
+            Output of the executed cell
+        """
+        target_cell = self.get_cell_by_index(cell_index)
+        return self.execute_cell_by_id(target_cell.get("id"), parameters)
 
     def save_notebook(self, path: Optional[str] = None) -> None:
         """Save the notebook to file

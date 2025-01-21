@@ -16,18 +16,17 @@ def read_notebook(notebook_path: str) -> int:
 @mcp.tool()
 def add_cell(
     notebook_path: str, cell_type: str = "code", source: str = "", position: int = -1
-) -> int:
+) -> str:
     """Add a cell to the notebook specified by notebook_path to a specific position."""
     nb_manager = NotebookManager(notebook_path)
-    nb_manager.add_cell(
+    new_cell_index = nb_manager.add_cell(
         cell_type=cell_type,
         source=source,
         position=position,
     )
     # Execute the modified notebook
     parameters: Dict[str, str] = {}
-    executed_nb_json = nb_manager.execute_notebook(parameters)
-
+    executed_nb_json = nb_manager.execute_cell_by_index(new_cell_index, parameters)
     nb_manager.save_notebook()
     return executed_nb_json
 
