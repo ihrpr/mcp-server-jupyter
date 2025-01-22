@@ -1,27 +1,12 @@
 from dataclasses import dataclass
 import json
-from typing import Any, Literal
-
-
-from enum import Enum
-
-
-@dataclass
-class TextContent:
-    type: Literal["text"]
-    text: str
-
-
-@dataclass
-class ImageContent:
-    type: Literal["image"]
-    data: str  # base64 encoded data
-    mime_type: str
+from typing import Any
+import mcp.types as types
 
 
 @dataclass
 class CellOutput:
-    output: TextContent | ImageContent
+    output: types.TextContent | types.ImageContent | types.EmbeddedResource
 
     @classmethod
     def from_dict(cls, output_data: dict[str, Any]) -> "CellOutput":
@@ -34,32 +19,32 @@ class CellOutput:
 
             # Handle image output
             if "image/png" in data:
-                return ImageContent(
+                return types.ImageContent(
                     type="image",
                     data=data["image/png"],
-                    mime_type="image/png",
+                    mimeType="image/png",
                 )
 
             # Handle text/plain output
             elif "text/plain" in data:
-                return TextContent(
+                return types.TextContent(
                     type="text",
                     text=data["text/plain"],
                 )
 
-            return TextContent(
+            return types.TextContent(
                 type="text",
                 text=str(data),
             )
 
         elif output_type == "stream":
-            return TextContent(
+            return types.TextContent(
                 type="text",
                 text=output_data.get("text", ""),
             )
 
         elif output_type == "error":
-            return TextContent(
+            return types.TextContent(
                 type="text",
                 text=json.dumps(
                     {
@@ -70,7 +55,7 @@ class CellOutput:
                 ),
             )
 
-        return TextContent(
+        return types.TextContent(
             type="text",
             text=str(output_data),
         )
