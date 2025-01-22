@@ -26,19 +26,34 @@ async def handle_list_tools() -> list[types.Tool]:
                 },
                 "required": ["notebook_path"],
             },
-        )
+        ),
+        types.Tool(
+            name="read_notebook",
+            description="Read the notebook specified by notebook_path including outputs",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "notebook_path": {"type": "string"},
+                },
+                "required": ["notebook_path"],
+            },
+        ),
     ]
 
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict):
-    if name != "add_cell":
-        raise ValueError(f"Unknown tool: {name}")
-    notebook_path = arguments["notebook_path"]
-    cell_type = arguments.get("cell_type", "code")
-    source = arguments.get("source", "")
-    position = arguments.get("position", -1)
-    return _call_add_cell(notebook_path, cell_type, source, position)
+    if name == "add_cell":
+        notebook_path = arguments["notebook_path"]
+        cell_type = arguments.get("cell_type", "code")
+        source = arguments.get("source", "")
+        position = arguments.get("position", -1)
+        return _call_add_cell(notebook_path, cell_type, source, position)
+    elif name == "read_notebook":
+        notebook_path = arguments["notebook_path"]
+        return _read_notebook(notebook_path)
+
+    raise ValueError(f"Unknown tool: {name}")
 
 
 def _call_add_cell(
@@ -61,6 +76,20 @@ def _call_add_cell(
         all_outputs.extend(nb.outputs)
 
     return all_outputs
+
+
+def _read_notebook(
+    notebook_path: str,
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    """Read the notebook specified by notebook_path."""
+    nb_manager = NotebookManager(notebook_path)
+
+    results = []
+    for nb in nb_manager.get_notebook_details():
+        results.append(types.TextContent(type="text", text=nb.content))
+        if nb.cell_type == "code":
+            results.extend(nb.outputs)
+    return results
 
 
 async def run():
