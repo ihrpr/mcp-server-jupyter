@@ -25,7 +25,7 @@ packages = ["src/mcp_server_jupyter"]
 
 
 [tool.pyright]
-include = ["src/mcp", "tests"]
+include = ["src/mcp_server_jupyter"]
 venvPath = "."
 venv = ".venv"
 
