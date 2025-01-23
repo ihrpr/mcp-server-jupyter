@@ -28,6 +28,21 @@ async def handle_list_tools() -> list[types.Tool]:
             },
         ),
         types.Tool(
+            name="read_notebook_source_only",
+            description="""
+            Read the latest version of the notebook source specified by notebook_path including outputs. 
+            Should always be used before modifying notebook to better understand what is already there and if modifications are needed or not.
+            This version is useful when there is size limitations when reading the notebook with outputs.
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "notebook_path": {"type": "string"},
+                },
+                "required": ["notebook_path"],
+            },
+        ),
+        types.Tool(
             name="add_cell",
             description="Add a cell to the notebook specified by notebook_path.",
             inputSchema={
@@ -65,6 +80,9 @@ async def handle_call_tool(name: str, arguments: dict):
     if name == "read_notebook_with_outputs":
         notebook_path = arguments["notebook_path"]
         return _read_notebook(notebook_path)
+    elif name == "read_notebook_source_only":
+        notebook_path = arguments["notebook_path"]
+        return _read_notebook(notebook_path, with_outputs=False)
     elif name == "add_cell":
         notebook_path = arguments["notebook_path"]
         cell_type = arguments.get("cell_type", "code")
@@ -133,6 +151,7 @@ def _edit_cell(
 
 def _read_notebook(
     notebook_path: str,
+    with_outputs: bool = True,
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
     """Read the notebook specified by notebook_path."""
     nb_manager = NotebookManager(notebook_path)
@@ -143,7 +162,13 @@ def _read_notebook(
             types.TextContent(type="text", text=f"Cell with ID: {nb.cell_id}")
         )
         results.append(types.TextContent(type="text", text=nb.content))
-        if nb.cell_type == "code":
+        if with_outputs and nb.cell_type == "code":
+            results.append(
+                types.TextContent(
+                    type="text",
+                    text=f"Result of execution of cell with ID: {nb.cell_id}",
+                )
+            )
             results.extend(nb.outputs)
     return results
 
