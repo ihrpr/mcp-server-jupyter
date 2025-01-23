@@ -4,7 +4,7 @@ import nbformat
 from nbformat import NotebookNode
 from nbclient import NotebookClient
 
-from mcp_server_jupyter.notebook import NotebookCell
+from mcp_server_jupyter.notebook_cell import NotebookCell
 
 
 class NotebookManager:
