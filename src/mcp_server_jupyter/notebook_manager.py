@@ -89,8 +89,8 @@ class NotebookManager:
         except StopIteration:
             return False
 
-    def update_cell_code(self, id: str, new_code: str) -> bool:
-        """Update code in a cell specified by its ID.
+    def update_cell_source(self, id: str, new_source: str) -> bool:
+        """Update source in a cell specified by its ID.
 
         Args:
             id: The unique identifier of the cell to update
@@ -98,17 +98,13 @@ class NotebookManager:
 
         Returns:
             True if cell was found and updated, False if cell wasn't found
-            or wasn't a code cell
         """
         try:
             # Find cell by ID
             cell = self.get_cell_by_id(id)
 
-            # Update only if it's a code cell
-            if cell.cell_type == "code":
-                cell.source = new_code
-                return True
-            return False
+            cell.source = new_source
+            return True
 
         except StopIteration:
             return False

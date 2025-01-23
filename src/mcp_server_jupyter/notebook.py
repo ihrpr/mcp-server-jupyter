@@ -63,6 +63,7 @@ class CellOutput:
 
 @dataclass
 class NotebookCell:
+    cell_id: str
     cell_type: str
     content: str
     outputs: list[CellOutput]
@@ -78,6 +79,7 @@ class NotebookCell:
                 outputs.append(CellOutput.from_dict(output))
 
         return cls(
+            cell_id=cell_data.get("id"),
             cell_type=cell_data.get("cell_type", ""),
             content="".join(cell_data.get("source", [])),
             outputs=outputs,
