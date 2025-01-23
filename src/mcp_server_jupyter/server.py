@@ -38,7 +38,7 @@ async def handle_list_tools() -> list[types.Tool]:
                     "source": {"type": "string"},
                     "position": {"type": "integer"},
                 },
-                "required": ["notebook_path"],
+                "required": ["notebook_path", "source"],
             },
         ),
         types.Tool(
@@ -54,7 +54,7 @@ async def handle_list_tools() -> list[types.Tool]:
                     },
                     "source": {"type": "string"},
                 },
-                "required": ["notebook_path", "cell_id"],
+                "required": ["notebook_path", "cell_id", "source"],
             },
         ),
     ]
@@ -68,13 +68,13 @@ async def handle_call_tool(name: str, arguments: dict):
     elif name == "add_cell":
         notebook_path = arguments["notebook_path"]
         cell_type = arguments.get("cell_type", "code")
-        source = arguments.get("source", "")
+        source = arguments["source"]
         position = arguments.get("position", -1)
         return _add_cell(notebook_path, cell_type, source, position)
     elif name == "edit_cell":
         notebook_path = arguments["notebook_path"]
         id = arguments["cell_id"]
-        source = arguments.get("source", "")
+        source = arguments["source"]
         return _edit_cell(notebook_path, id, source)
 
     raise ValueError(f"Unknown tool: {name}")
