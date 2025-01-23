@@ -17,7 +17,7 @@ class NotebookManager:
         """Get details of the notebook"""
         """Format the notebook"""
 
-        return self._parse_notebook(self.notebook)
+        return self.parse_notebook_nodes(self.notebook)
 
     def get_cell_by_index(self, cell_index: int) -> NotebookNode:
         """Get a cell by its index"""
@@ -158,7 +158,7 @@ class NotebookManager:
         client = NotebookClient(self.notebook, timeout=600)
         with client.setup_kernel():
             executed_cell = client.execute_cell(target_cell, cell_index)
-            return self._parse_notebook(executed_cell)
+            return self.parse_notebook_nodes(executed_cell)
 
     def execute_cell_by_index(
         self, cell_index: int, parameters: Optional[Dict[str, Any]] = None
@@ -186,7 +186,7 @@ class NotebookManager:
         with open(save_path, "w") as f:
             nbformat.write(self.notebook, f)
 
-    def _parse_notebook(self, notebook: NotebookNode) -> list[NotebookCell]:
+    def parse_notebook_nodes(self, notebook: NotebookNode) -> list[NotebookCell]:
         """Parse a Jupyter notebook JSON string into a list of NotebookCell objects."""
         try:
             cells = []

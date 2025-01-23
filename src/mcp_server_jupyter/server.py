@@ -32,7 +32,8 @@ async def handle_list_tools() -> list[types.Tool]:
             description="""
             Read the latest version of the notebook source specified by notebook_path including outputs. 
             Should always be used before modifying notebook to better understand what is already there and if modifications are needed or not.
-            This version is useful when there is size limitations when reading the notebook with outputs.
+            This version is useful when there is size limitations when reading the notebook with outputs
+            to read source only and then get output for cells that are relevant (with read_output_of_cell tool).
             """,
             inputSchema={
                 "type": "object",
@@ -40,6 +41,20 @@ async def handle_list_tools() -> list[types.Tool]:
                     "notebook_path": {"type": "string"},
                 },
                 "required": ["notebook_path"],
+            },
+        ),
+        types.Tool(
+            name="read_output_of_cell",
+            description="""
+            Read the output of a cell specified by cell_id in the notebook specified by notebook_path.
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "notebook_path": {"type": "string"},
+                    "cell_id": {"type": "string"},
+                },
+                "required": ["notebook_path", "cell_id"],
             },
         ),
         types.Tool(
@@ -65,7 +80,7 @@ async def handle_list_tools() -> list[types.Tool]:
                     "notebook_path": {"type": "string"},
                     "cell_id": {
                         "type": "string",
-                        "description": "Unique ID of the cell to edit. It can be obtained from reding the notebook details (read_notebook tool).",
+                        "description": "Unique ID of the cell to edit. It can be obtained from reding the notebook details (read_notebook_source_only or read_notebook_with_outputs tools).",
                     },
                     "source": {"type": "string"},
                 },
@@ -83,6 +98,10 @@ async def handle_call_tool(name: str, arguments: dict):
     elif name == "read_notebook_source_only":
         notebook_path = arguments["notebook_path"]
         return _read_notebook(notebook_path, with_outputs=False)
+    elif name == "read_output_of_cell":
+        notebook_path = arguments["notebook_path"]
+        cell_id = arguments["cell_id"]
+        return _read_cell_output(notebook_path, cell_id)
     elif name == "add_cell":
         notebook_path = arguments["notebook_path"]
         cell_type = arguments.get("cell_type", "code")
@@ -163,6 +182,29 @@ def _read_notebook(
         )
         results.append(types.TextContent(type="text", text=nb.content))
         if with_outputs and nb.cell_type == "code":
+            results.append(
+                types.TextContent(
+                    type="text",
+                    text=f"Result of execution of cell with ID: {nb.cell_id}",
+                )
+            )
+            results.extend(nb.outputs)
+    return results
+
+
+def _read_cell_output(
+    notebook_path: str,
+    cell_id: str,
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    """Read the notebook specified by notebook_path."""
+    nb_manager = NotebookManager(notebook_path)
+
+    results = []
+    cell = nb_manager.get_cell_by_id(cell_id)
+    cell_details = nb_manager.parse_notebook_nodes(cell)
+
+    for nb in cell_details:
+        if nb.cell_type == "code":
             results.append(
                 types.TextContent(
                     type="text",
