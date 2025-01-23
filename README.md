@@ -2,6 +2,8 @@
 
 An MCP server for managing and interacting with Jupyter notebooks programmatically.
 
+![Demo](demo/mcp_server-jupyter.gif)
+
 ## Components
 
 ### Tools
