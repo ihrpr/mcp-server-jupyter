@@ -1,8 +1,9 @@
 import json
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
+
 import nbformat
-from nbformat import NotebookNode
 from nbclient import NotebookClient
+from nbformat import NotebookNode
 
 from mcp_server_jupyter.notebook_cell import NotebookCell
 

@@ -1,7 +1,7 @@
-from mcp.server.lowlevel import Server, NotificationOptions
-from mcp.server.models import InitializationOptions
 import mcp.server.stdio
 import mcp.types as types
+from mcp.server.lowlevel import NotificationOptions, Server
+from mcp.server.models import InitializationOptions
 
 from mcp_server_jupyter.notebook_manager import NotebookManager
 
@@ -78,7 +78,7 @@ async def handle_list_tools() -> list[types.Tool]:
                     "notebook_path": {"type": "string"},
                     "cell_id": {
                         "type": "string",
-                        "description": "Unique ID of the cell to edit. This can be obtained using read_notebook_source_only or read_notebook_with_outputs.",
+                        "description": "Unique ID of the cell to edit. This can be obtained using read_notebook_(source_only/_with_outputs).",
                     },
                     "source": {"type": "string"},
                 },
@@ -160,7 +160,7 @@ def _edit_cell(
         return [
             types.TextContent(
                 type="text",
-                text="Cell not found: No cell with the specified ID exists in the notebook.",
+                text="No cell with the specified ID exists in the notebook.",
             )
         ]
 
