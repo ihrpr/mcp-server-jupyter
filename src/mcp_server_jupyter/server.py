@@ -14,10 +14,13 @@ async def handle_list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="read_notebook_with_outputs",
-            description="""
-            Read the current version of the notebook at notebook_path, including cell outputs. 
-            Use this before modifying a notebook to understand its existing content and determine if changes are needed.
-            """,
+            description=(
+                "Read the current version of the notebook at notebook_path, "
+                "including cell outputs. "
+                "Use this before modifying a notebook to understand "
+                "its existing content and determine "
+                "if changes are needed."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -28,11 +31,14 @@ async def handle_list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="read_notebook_source_only",
-            description="""
-            Read the current version of the notebook at notebook_path without outputs.
-            Use this when size limitations prevent reading the full notebook with outputs.
-            Individual cell outputs can be retrieved using the read_output_of_cell tool.
-            """,
+            description=(
+                "Read the current version of the notebook "
+                "at notebook_path without outputs. "
+                "Use this when size limitations prevent "
+                "reading the full notebook with outputs. "
+                "Individual cell outputs can be retrieved "
+                "using the read_output_of_cell tool."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -43,9 +49,7 @@ async def handle_list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="read_output_of_cell",
-            description="""
-            Read the output of a specific cell in a notebook, identified by cell_id.
-            """,
+            description="Read the output of a specific cell in a notebook, by cell_id.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -78,7 +82,10 @@ async def handle_list_tools() -> list[types.Tool]:
                     "notebook_path": {"type": "string"},
                     "cell_id": {
                         "type": "string",
-                        "description": "Unique ID of the cell to edit. This can be obtained using read_notebook_(source_only/_with_outputs).",
+                        "description": (
+                            "Unique ID of the cell to edit. This can be obtained using "
+                            "read_notebook_source_only or read_notebook_with_outputs."
+                        ),
                     },
                     "source": {"type": "string"},
                 },
