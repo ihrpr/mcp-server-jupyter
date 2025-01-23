@@ -9,7 +9,7 @@ dependencies = [
     "mcp[cli]>=1.2.0",
     "nbclient>=0.10.2",
     "nbformat>=5.10.4",
-    "pillow>=11.1.0",
+    "pillow>=11.0.0",
 ]
 [build-system]
 requires = ["hatchling"]

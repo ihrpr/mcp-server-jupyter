@@ -449,7 +449,7 @@ requires-dist = [
     { name = "mcp", extras = ["cli"], specifier = ">=1.2.0" },
     { name = "nbclient", specifier = ">=0.10.2" },
     { name = "nbformat", specifier = ">=5.10.4" },
-    { name = "pillow", specifier = ">=11.1.0" },
+    { name = "pillow", specifier = ">=11.0.0" },
 ]
 
 [[package]]
