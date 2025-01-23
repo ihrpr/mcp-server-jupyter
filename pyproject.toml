@@ -11,8 +11,28 @@ dependencies = [
     "nbformat>=5.10.4",
     "pillow>=11.0.0",
 ]
+[tool.uv]
+resolution = "lowest-direct"
+dev-dependencies = [
+    "pyright>=1.1.391",
+    "ruff>=0.8.5",
+]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_server_jupyter"]
+
+
+[tool.pyright]
+include = ["src/mcp", "tests"]
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"

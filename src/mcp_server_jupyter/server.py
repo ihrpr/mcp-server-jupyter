@@ -1,4 +1,3 @@
-from typing import Dict
 from mcp.server.lowlevel import Server, NotificationOptions
 from mcp.server.models import InitializationOptions
 import mcp.server.stdio
@@ -138,7 +137,7 @@ def _add_cell(
     executed_nb_json = nb_manager.execute_cell_by_index(new_cell_index, {})
     nb_manager.save_notebook()
 
-    return [output for nb in executed_nb_json for output in nb.outputs]
+    return [output.output for nb in executed_nb_json for output in nb.outputs]
 
 
 def _edit_cell(
@@ -158,13 +157,18 @@ def _edit_cell(
     """
     nb_manager = NotebookManager(notebook_path)
     if not nb_manager.update_cell_source(id=id, new_source=source):
-        return ["Cell not found: No cell with the specified ID exists in the notebook."]
+        return [
+            types.TextContent(
+                type="text",
+                text="Cell not found: No cell with the specified ID exists in the notebook.",
+            )
+        ]
 
     # Execute the modified cell
     executed_nb_json = nb_manager.execute_cell_by_id(id, {})
     nb_manager.save_notebook()
 
-    return [output for nb in executed_nb_json for output in nb.outputs]
+    return [output.output for nb in executed_nb_json for output in nb.outputs]
 
 
 def _read_notebook(

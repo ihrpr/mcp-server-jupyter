@@ -19,45 +19,57 @@ class CellOutput:
 
             # Handle image output
             if "image/png" in data:
-                return types.ImageContent(
-                    type="image",
-                    data=data["image/png"],
-                    mimeType="image/png",
+                return CellOutput(
+                    output=types.ImageContent(
+                        type="image",
+                        data=data["image/png"],
+                        mimeType="image/png",
+                    )
                 )
 
             # Handle text/plain output
             elif "text/plain" in data:
-                return types.TextContent(
-                    type="text",
-                    text=data["text/plain"],
+                return CellOutput(
+                    output=types.TextContent(
+                        type="text",
+                        text=data["text/plain"],
+                    )
                 )
 
-            return types.TextContent(
-                type="text",
-                text=str(data),
+            return CellOutput(
+                output=types.TextContent(
+                    type="text",
+                    text=str(data),
+                )
             )
 
         elif output_type == "stream":
-            return types.TextContent(
-                type="text",
-                text=output_data.get("text", ""),
+            return CellOutput(
+                output=types.TextContent(
+                    type="text",
+                    text=output_data.get("text", ""),
+                )
             )
 
         elif output_type == "error":
-            return types.TextContent(
-                type="text",
-                text=json.dumps(
-                    {
-                        "ename": output_data.get("ename", ""),
-                        "evalue": output_data.get("evalue", ""),
-                        "traceback": output_data.get("traceback", []),
-                    }
-                ),
+            return CellOutput(
+                output=types.TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "ename": output_data.get("ename", ""),
+                            "evalue": output_data.get("evalue", ""),
+                            "traceback": output_data.get("traceback", []),
+                        }
+                    ),
+                )
             )
 
-        return types.TextContent(
-            type="text",
-            text=str(output_data),
+        return CellOutput(
+            output=types.TextContent(
+                type="text",
+                text=str(output_data),
+            )
         )
 
 
@@ -68,7 +80,7 @@ class NotebookCell:
     content: str
     outputs: list[CellOutput]
     execution_count: int | None = None
-    metadata: dict[str, Any] = None
+    metadata: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, cell_data: dict[str, Any]) -> "NotebookCell":
@@ -79,7 +91,7 @@ class NotebookCell:
                 outputs.append(CellOutput.from_dict(output))
 
         return cls(
-            cell_id=cell_data.get("id"),
+            cell_id=cell_data.get("id", ""),
             cell_type=cell_data.get("cell_type", ""),
             content="".join(cell_data.get("source", [])),
             outputs=outputs,

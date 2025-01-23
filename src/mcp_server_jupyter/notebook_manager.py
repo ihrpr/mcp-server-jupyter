@@ -109,7 +109,9 @@ class NotebookManager:
         except StopIteration:
             return False
 
-    def execute_notebook(self, parameters: Optional[Dict[str, Any]] = None) -> str:
+    def execute_notebook(
+        self, parameters: Optional[Dict[str, Any]] = None
+    ) -> list[NotebookCell]:
         """Execute the notebook and return results
 
         Args:
@@ -173,7 +175,7 @@ class NotebookManager:
             Output of the executed cell
         """
         target_cell = self.get_cell_by_index(cell_index)
-        return self.execute_cell_by_id(target_cell.get("id"), parameters)
+        return self.execute_cell_by_id(target_cell.get("id", ""), parameters)
 
     def save_notebook(self, path: Optional[str] = None) -> None:
         """Save the notebook to file
