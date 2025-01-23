@@ -67,6 +67,34 @@ Add this configuration to your Claude Desktop config file:
 
 Customize `--with` libraries based on your project requirements.
 
+## How to Use
+
+1. Start JupyterLab or Jupyter Notebook
+
+   ```bash
+   jupyter lab
+   # or
+   jupyter notebook
+   ```
+
+2. Open or create a notebook in JupyterLab/Jupyter Notebook
+
+3. Get the full path to your notebook:
+
+   - In JupyterLab: Right-click on the notebook in the file browser → "Copy Path"
+   - In Jupyter Notebook: Copy the path from the URL (modify to full system path)
+
+4. In Claude Desktop chat:
+
+   - Always use the full path to the notebook when calling tools
+   - Example: `/Users/username/projects/my_notebook.ipynb`
+
+5. Important Notes:
+   - After any modifications through Claude (add_cell, edit_cell):
+     - Reload the notebook page in JupyterLab/Jupyter Notebook
+     - Current version does not support automatic reload
+   - Keep JupyterLab/Jupyter Notebook instance running while working with Claude
+
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
