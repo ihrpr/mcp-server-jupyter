@@ -56,28 +56,31 @@ Add this configuration to your Claude Desktop config file:
         "run",
         "--directory",
         "/path/to/mcp-server-jupyter/src/mcp_server_jupyter",
-        "--with",
-        "numpy",
-        "--with",
-        "matplotlib",
-        "server.py"
-      ]
+        "mcp-server-jupyter"
+      ],
+      "env": {
+        "UV_PROJECT_ENVIRONMENT": "/path/to/venv_for_jupyter/.venv"
+      }
     }
   }
 }
 ```
 
-Customize `--with` libraries based on your project requirements.
-
 ## How to Use
 
 1. Start JupyterLab or Jupyter Notebook
 
-   ```bash
-   jupyter lab
-   # or
-   jupyter notebook
-   ```
+When using uv to run Jupyter notebooks it's much easier to manage venv and package installations.
+
+Please follow [uv jupyter docummentation](https://docs.astral.sh/uv/guides/integration/jupyter/) for more details.
+
+```bash
+uv venv --seed
+uv run --with jupyter jupyter lab
+
+```
+
+NOTE: this environment should be used as UV_PROJECT_ENVIRONMENT env variable in MCP server.
 
 2. Open or create a notebook in JupyterLab/Jupyter Notebook
 
