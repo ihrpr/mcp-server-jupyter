@@ -6,7 +6,7 @@ import mcp.types as types
 
 from mcp_server_jupyter.notebook_manager import NotebookManager
 
-# Create a server instance
+# Initialize server instance for Jupyter notebook management
 server = Server("mcp-server-jupyter")
 
 
@@ -16,8 +16,8 @@ async def handle_list_tools() -> list[types.Tool]:
         types.Tool(
             name="read_notebook_with_outputs",
             description="""
-            Read the latest version of the notebook specified by notebook_path including outputs. 
-            Should always be used before modifying notebook to better understand what is already there and if modifications are needed or not.
+            Read the current version of the notebook at notebook_path, including cell outputs. 
+            Use this before modifying a notebook to understand its existing content and determine if changes are needed.
             """,
             inputSchema={
                 "type": "object",
@@ -30,10 +30,9 @@ async def handle_list_tools() -> list[types.Tool]:
         types.Tool(
             name="read_notebook_source_only",
             description="""
-            Read the latest version of the notebook source specified by notebook_path including outputs. 
-            Should always be used before modifying notebook to better understand what is already there and if modifications are needed or not.
-            This version is useful when there is size limitations when reading the notebook with outputs
-            to read source only and then get output for cells that are relevant (with read_output_of_cell tool).
+            Read the current version of the notebook at notebook_path without outputs.
+            Use this when size limitations prevent reading the full notebook with outputs.
+            Individual cell outputs can be retrieved using the read_output_of_cell tool.
             """,
             inputSchema={
                 "type": "object",
@@ -46,7 +45,7 @@ async def handle_list_tools() -> list[types.Tool]:
         types.Tool(
             name="read_output_of_cell",
             description="""
-            Read the output of a cell specified by cell_id in the notebook specified by notebook_path.
+            Read the output of a specific cell in a notebook, identified by cell_id.
             """,
             inputSchema={
                 "type": "object",
@@ -59,7 +58,7 @@ async def handle_list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="add_cell",
-            description="Add a cell to the notebook specified by notebook_path.",
+            description="Add a new cell to the notebook at the specified position.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -73,14 +72,14 @@ async def handle_list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="edit_cell",
-            description="Edit cell source in the notebook specified by notebook_path.",
+            description="Edit the source code of an existing cell in the notebook.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "notebook_path": {"type": "string"},
                     "cell_id": {
                         "type": "string",
-                        "description": "Unique ID of the cell to edit. It can be obtained from reding the notebook details (read_notebook_source_only or read_notebook_with_outputs tools).",
+                        "description": "Unique ID of the cell to edit. This can be obtained using read_notebook_source_only or read_notebook_with_outputs.",
                     },
                     "source": {"type": "string"},
                 },
@@ -92,27 +91,24 @@ async def handle_list_tools() -> list[types.Tool]:
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict):
+    """Route tool calls to their respective handlers"""
     if name == "read_notebook_with_outputs":
-        notebook_path = arguments["notebook_path"]
-        return _read_notebook(notebook_path)
+        return _read_notebook(arguments["notebook_path"])
     elif name == "read_notebook_source_only":
-        notebook_path = arguments["notebook_path"]
-        return _read_notebook(notebook_path, with_outputs=False)
+        return _read_notebook(arguments["notebook_path"], with_outputs=False)
     elif name == "read_output_of_cell":
-        notebook_path = arguments["notebook_path"]
-        cell_id = arguments["cell_id"]
-        return _read_cell_output(notebook_path, cell_id)
+        return _read_cell_output(arguments["notebook_path"], arguments["cell_id"])
     elif name == "add_cell":
-        notebook_path = arguments["notebook_path"]
-        cell_type = arguments.get("cell_type", "code")
-        source = arguments["source"]
-        position = arguments.get("position", -1)
-        return _add_cell(notebook_path, cell_type, source, position)
+        return _add_cell(
+            arguments["notebook_path"],
+            arguments.get("cell_type", "code"),
+            arguments["source"],
+            arguments.get("position", -1),
+        )
     elif name == "edit_cell":
-        notebook_path = arguments["notebook_path"]
-        id = arguments["cell_id"]
-        source = arguments["source"]
-        return _edit_cell(notebook_path, id, source)
+        return _edit_cell(
+            arguments["notebook_path"], arguments["cell_id"], arguments["source"]
+        )
 
     raise ValueError(f"Unknown tool: {name}")
 
@@ -120,23 +116,29 @@ async def handle_call_tool(name: str, arguments: dict):
 def _add_cell(
     notebook_path: str, cell_type: str, source: str, position: int
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """Add a cell to the notebook specified by notebook_path to a specific position."""
+    """Add a new cell to the notebook, execute it and save the resutls.
+
+    Args:
+        notebook_path: Path to the target notebook
+        cell_type: Type of cell to add ('code' or 'markdown')
+        source: Cell content
+        position: Index where to insert the cell (-1 for append)
+
+    Returns:
+        List of execution outputs
+    """
     nb_manager = NotebookManager(notebook_path)
     new_cell_index = nb_manager.add_cell(
         cell_type=cell_type,
         source=source,
         position=position,
     )
-    # Execute the modified notebook
-    parameters: Dict[str, str] = {}
-    executed_nb_json = nb_manager.execute_cell_by_index(new_cell_index, parameters)
-    nb_manager.save_notebook()
-    # flatten all outputs
-    all_outputs = []
-    for nb in executed_nb_json:
-        all_outputs.extend(nb.outputs)
 
-    return all_outputs
+    # Execute the new cell
+    executed_nb_json = nb_manager.execute_cell_by_index(new_cell_index, {})
+    nb_manager.save_notebook()
+
+    return [output for nb in executed_nb_json for output in nb.outputs]
 
 
 def _edit_cell(
@@ -144,51 +146,61 @@ def _edit_cell(
     id: str,
     source: str,
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """If there is already an existing cell that doens something similar to what user requested, edit that cell.
-    We can check with the user if they want to edit the cell or add a new cell if it's not clear from the context.
+    """Edit an existing cell and re-execute it.
+
+    Args:
+        notebook_path: Path to the target notebook
+        id: Unique identifier of the cell to edit
+        source: New cell content
+
+    Returns:
+        List of execution outputs or error message if cell not found
     """
     nb_manager = NotebookManager(notebook_path)
-    was_updated = nb_manager.update_cell_source(
-        id=id,
-        new_source=source,
-    )
-    if not was_updated:
-        return [
-            "No cell was updated, probably because the cell with the specified ID was not found."
-        ]
-    # Execute the modified notebook
-    parameters: Dict[str, str] = {}
-    executed_nb_json = nb_manager.execute_cell_by_id(id, parameters)
-    nb_manager.save_notebook()
-    # flatten all outputs
-    all_outputs = []
-    for nb in executed_nb_json:
-        all_outputs.extend(nb.outputs)
+    if not nb_manager.update_cell_source(id=id, new_source=source):
+        return ["Cell not found: No cell with the specified ID exists in the notebook."]
 
-    return all_outputs
+    # Execute the modified cell
+    executed_nb_json = nb_manager.execute_cell_by_id(id, {})
+    nb_manager.save_notebook()
+
+    return [output for nb in executed_nb_json for output in nb.outputs]
 
 
 def _read_notebook(
     notebook_path: str,
     with_outputs: bool = True,
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """Read the notebook specified by notebook_path."""
-    nb_manager = NotebookManager(notebook_path)
+    """Read contents of a notebook with optional outputs.
 
+    Args:
+        notebook_path: Path to the notebook
+        with_outputs: Include execution outputs if True
+
+    Returns:
+        List of cell contents and outputs
+    """
+    nb_manager = NotebookManager(notebook_path)
     results = []
+
     for nb in nb_manager.get_notebook_details():
-        results.append(
-            types.TextContent(type="text", text=f"Cell with ID: {nb.cell_id}")
+        results.extend(
+            [
+                types.TextContent(type="text", text=f"Cell with ID: {nb.cell_id}"),
+                types.TextContent(type="text", text=nb.content),
+            ]
         )
-        results.append(types.TextContent(type="text", text=nb.content))
+
         if with_outputs and nb.cell_type == "code":
-            results.append(
-                types.TextContent(
-                    type="text",
-                    text=f"Result of execution of cell with ID: {nb.cell_id}",
-                )
+            results.extend(
+                [
+                    types.TextContent(
+                        type="text", text=f"Output of cell {nb.cell_id}:"
+                    ),
+                    *nb.outputs,
+                ]
             )
-            results.extend(nb.outputs)
+
     return results
 
 
@@ -196,22 +208,30 @@ def _read_cell_output(
     notebook_path: str,
     cell_id: str,
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """Read the notebook specified by notebook_path."""
+    """Read execution outputs of a specific cell.
+
+    Args:
+        notebook_path: Path to the notebook
+        cell_id: ID of the target cell
+
+    Returns:
+        List of cell outputs
+    """
     nb_manager = NotebookManager(notebook_path)
-
-    results = []
     cell = nb_manager.get_cell_by_id(cell_id)
-    cell_details = nb_manager.parse_notebook_nodes(cell)
+    results = []
 
-    for nb in cell_details:
+    for nb in nb_manager.parse_notebook_nodes(cell):
         if nb.cell_type == "code":
-            results.append(
-                types.TextContent(
-                    type="text",
-                    text=f"Result of execution of cell with ID: {nb.cell_id}",
-                )
+            results.extend(
+                [
+                    types.TextContent(
+                        type="text", text=f"Output of cell {nb.cell_id}:"
+                    ),
+                    *nb.outputs,
+                ]
             )
-            results.extend(nb.outputs)
+
     return results
 
 
