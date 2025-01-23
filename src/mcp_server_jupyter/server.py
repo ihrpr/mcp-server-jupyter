@@ -14,7 +14,7 @@ server = Server("mcp-server-jupyter")
 async def handle_list_tools() -> list[types.Tool]:
     return [
         types.Tool(
-            name="read_notebook",
+            name="read_notebook_with_outputs",
             description="""
             Read the latest version of the notebook specified by notebook_path including outputs. 
             Should always be used before modifying notebook to better understand what is already there and if modifications are needed or not.
@@ -62,7 +62,7 @@ async def handle_list_tools() -> list[types.Tool]:
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict):
-    if name == "read_notebook":
+    if name == "read_notebook_with_outputs":
         notebook_path = arguments["notebook_path"]
         return _read_notebook(notebook_path)
     elif name == "add_cell":
