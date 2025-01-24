@@ -51,11 +51,13 @@ Follow [uv jupyter docummentation](https://docs.astral.sh/uv/guides/integration/
 ```bash
 uv venv --seed
 source .venv/bin/activate
-uv run --with jupyter jupyter lab
+uv pip install jupyterlab
+.venv/bin/jupyter lab
 
 ```
 
 **NOTE**: this environment should be used as `UV_PROJECT_ENVIRONMENT` env variable in MCP server (next step). Run in the same folder where Jupyter started.
+
 ```
 echo $(pwd)/.venv
 
@@ -71,12 +73,7 @@ echo $(pwd)/.venv
   "mcpServers": {
     "Jupyter-notebook-manager": {
       "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp-server-jupyter",
-        "mcp-server-jupyter"
-      ],
+      "args": ["run", "--with", "mcp-server-jupyter", "mcp-server-jupyter"],
       "env": {
         "UV_PROJECT_ENVIRONMENT": "/path/to/venv_for_jupyter/.venv"
       }
@@ -106,25 +103,27 @@ echo $(pwd)/.venv
   }
 }
 ```
+
 ### Step 3: Open Notebook & Claude Chat
 
 Open or create a notebook in JupyterLab/Jupyter Notebook
 
 Get the full path to your notebook:
 
-   - In JupyterLab: Right-click on the notebook in the file browser → "Copy Path"
-   - In Jupyter Notebook: Copy the path from the URL (modify to full system path)
+- In JupyterLab: Right-click on the notebook in the file browser → "Copy Path"
+- In Jupyter Notebook: Copy the path from the URL (modify to full system path)
 
 In Claude Desktop chat:
 
-   - Always use the full path to the notebook when calling tools
-   - Example: `/Users/username/projects/my_notebook.ipynb`
+- Always use the full path to the notebook when calling tools
+- Example: `/Users/username/projects/my_notebook.ipynb`
 
 **Important Notes:**
-   - After any modifications through Claude (add_cell, edit_cell):
-     - Reload the notebook page in JupyterLab/Jupyter Notebook
-     - Current version does not support automatic reload
-   - Keep JupyterLab/Jupyter Notebook instance running while working with Claude
+
+- After any modifications through Claude (add_cell, edit_cell):
+  - Reload the notebook page in JupyterLab/Jupyter Notebook
+  - Current version does not support automatic reload
+- Keep JupyterLab/Jupyter Notebook instance running while working with Claude
 
 ## License
 
