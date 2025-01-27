@@ -4,18 +4,20 @@ from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from mcp.server.sse import SseServerTransport
 from starlette.applications import Starlette
-from starlette.routing import Route
+from starlette.routing import Mount, Route
 
 from mcp_server_jupyter.notebook_manager import NotebookManager
 
 # Initialize server instance for Jupyter notebook management
 server = Server("mcp-server-jupyter")
-sse = SseServerTransport("/messages")
+sse = SseServerTransport("/messages/")
 
 
 # Set up Starlette routes for SSE transport
-async def handle_sse(scope, receive, send):
-    async with sse.connect_sse(scope, receive, send) as streams:
+async def handle_sse(request):
+    async with sse.connect_sse(
+        request.scope, request.receive, request._send
+    ) as streams:  # noqa: SLF001
         await server.run(
             streams[0],
             streams[1],
@@ -30,14 +32,10 @@ async def handle_sse(scope, receive, send):
         )
 
 
-async def handle_messages(scope, receive, send):
-    await sse.handle_post_message(scope, receive, send)
-
-
 starlette_app = Starlette(
     routes=[
         Route("/sse", endpoint=handle_sse),
-        Route("/messages", endpoint=handle_messages, methods=["POST"]),
+        Mount("/messages/", app=sse.handle_post_message),
     ]
 )
 
