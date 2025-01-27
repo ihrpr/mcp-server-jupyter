@@ -21,6 +21,8 @@ dependencies = [
     "nbclient>=0.10.2",
     "nbformat>=5.10.4",
     "pillow>=11.0.0",
+    "starlette>=0.36.0",
+    "uvicorn>=0.27.0",
 ]
 
 [tool.pyright]

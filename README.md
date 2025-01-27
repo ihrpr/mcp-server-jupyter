@@ -93,7 +93,7 @@ echo $(pwd)/.venv
       "args": [
         "run",
         "--directory",
-        "/path/to/mcp-server-jupyter/src/mcp_server_jupyter",
+        "/Users/inna/mcp-server-jupyter/src/mcp_server_jupyter",
         "mcp-server-jupyter"
       ],
       "env": {

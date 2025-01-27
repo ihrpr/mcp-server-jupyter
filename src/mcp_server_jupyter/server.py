@@ -2,11 +2,42 @@ import mcp.server.stdio
 import mcp.types as types
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
+from mcp.server.sse import SseServerTransport
+from starlette.applications import Starlette
+from starlette.routing import Mount, Route
 
 from mcp_server_jupyter.notebook_manager import NotebookManager
 
 # Initialize server instance for Jupyter notebook management
 server = Server("mcp-server-jupyter")
+sse = SseServerTransport("/messages/")
+
+
+# Set up Starlette routes for SSE transport
+async def handle_sse(request):
+    async with sse.connect_sse(
+        request.scope, request.receive, request._send
+    ) as streams:  # noqa: SLF001
+        await server.run(
+            streams[0],
+            streams[1],
+            InitializationOptions(
+                server_name="Jupyter notebook manager",
+                server_version="0.1.0",
+                capabilities=server.get_capabilities(
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities={},
+                ),
+            ),
+        )
+
+
+starlette_app = Starlette(
+    routes=[
+        Route("/sse", endpoint=handle_sse),
+        Mount("/messages/", app=sse.handle_post_message),
+    ]
+)
 
 
 @server.list_tools()
@@ -246,23 +277,47 @@ def _read_cell_output(
     return results
 
 
-async def run():
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="Jupyter notebook manager",
-                server_version="0.1.0",
-                capabilities=server.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities={},
+async def run(transport_type="stdio", port=8000):
+    if transport_type == "stdio":
+        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="Jupyter notebook manager",
+                    server_version="0.1.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
                 ),
-            ),
-        )
+            )
+    elif transport_type == "sse":
+        import uvicorn
+
+        config = uvicorn.Config(starlette_app, host="127.0.0.1", port=port)
+        uvicorn_server = uvicorn.Server(config)
+        await uvicorn_server.serve()
 
 
 def main():
+    import argparse
     import asyncio
 
-    asyncio.run(run())
+    parser = argparse.ArgumentParser(description="MCP Jupyter Server")
+    parser.add_argument(
+        "transport",
+        nargs="?",
+        default="stdio",
+        choices=["stdio", "sse"],
+        help="Transport type (stdio or sse)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for SSE transport (default: 8000)",
+    )
+
+    args = parser.parse_args()
+    asyncio.run(run(args.transport, args.port))
