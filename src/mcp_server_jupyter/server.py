@@ -297,7 +297,9 @@ async def run(transport_type="stdio", port=8000):
     elif transport_type == "sse":
         import uvicorn
 
-        uvicorn.run(starlette_app, host="127.0.0.1", port=port)
+        config = uvicorn.Config(starlette_app, host="127.0.0.1", port=port)
+        uvicorn_server = uvicorn.Server(config)
+        await uvicorn_server.serve()
 
 
 def main():
