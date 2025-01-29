@@ -5,6 +5,8 @@ from mcp.server.models import InitializationOptions
 from mcp.server.sse import SseServerTransport
 from starlette.applications import Starlette
 from starlette.routing import Mount, Route
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 
 from mcp_server_jupyter.notebook_manager import NotebookManager
 
@@ -32,11 +34,24 @@ async def handle_sse(request):
         )
 
 
+# Configure CORS middleware
+middleware = [
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Accept", "Content-Type", "Origin"],
+        expose_headers=["Content-Type", "Content-Length"],
+        allow_credentials=False,
+    )
+]
+
 starlette_app = Starlette(
     routes=[
         Route("/sse", endpoint=handle_sse),
         Mount("/messages/", app=sse.handle_post_message),
-    ]
+    ],
+    middleware=middleware,
 )
 
 
