@@ -106,6 +106,22 @@ async def handle_list_tools() -> list[types.Tool]:
             },
         ),
         types.Tool(
+            name="execute_cell",
+            description=(
+                "Executes a specific cell in a notebook and returns its output. "
+                "Useful to check that the cell runs without errors "
+                "as well as produces the desired output."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "notebook_path": {"type": "string"},
+                    "cell_id": {"type": "string"},
+                },
+                "required": ["notebook_path", "cell_id"],
+            },
+        ),
+        types.Tool(
             name="add_cell",
             description="Add a new cell to the notebook at the specified position.",
             inputSchema={
@@ -150,6 +166,8 @@ async def handle_call_tool(name: str, arguments: dict):
         return _read_notebook(arguments["notebook_path"], with_outputs=False)
     elif name == "read_output_of_cell":
         return _read_cell_output(arguments["notebook_path"], arguments["cell_id"])
+    elif name == "execute_cell":
+        return _execute_cell(arguments["notebook_path"], arguments["cell_id"])
     elif name == "add_cell":
         return _add_cell(
             arguments["notebook_path"],
@@ -168,7 +186,7 @@ async def handle_call_tool(name: str, arguments: dict):
 def _add_cell(
     notebook_path: str, cell_type: str, source: str, position: int
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """Add a new cell to the notebook, execute it and save the resutls.
+    """Add a new cell to the notebook with the souce specified.
 
     Args:
         notebook_path: Path to the target notebook
@@ -177,20 +195,29 @@ def _add_cell(
         position: Index where to insert the cell (-1 for append)
 
     Returns:
-        List of execution outputs
+        A new cell id if successful, or an error message if not
     """
-    nb_manager = NotebookManager(notebook_path)
-    new_cell_index = nb_manager.add_cell(
-        cell_type=cell_type,
-        source=source,
-        position=position,
-    )
-
-    # Execute the new cell
-    executed_nb_json = nb_manager.execute_cell_by_index(new_cell_index, {})
-    nb_manager.save_notebook()
-
-    return [output.output for nb in executed_nb_json for output in nb.outputs]
+    try:
+        nb_manager = NotebookManager(notebook_path)
+        new_cell_index = nb_manager.add_cell(
+            cell_type=cell_type,
+            source=source,
+            position=position,
+        )
+        nb_manager.save_notebook()
+        id = nb_manager.get_cell_by_index(new_cell_index).get("id")
+        return [
+            types.TextContent(
+                type="text", text=f"Cell with id {id} added successfully."
+            ),
+        ]
+    except Exception as e:
+        return [
+            types.TextContent(
+                type="text",
+                text=f"An error happened while trying to add a new cell: {str(e)}",
+            )
+        ]
 
 
 def _edit_cell(
@@ -198,7 +225,7 @@ def _edit_cell(
     id: str,
     source: str,
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """Edit an existing cell and re-execute it.
+    """Edit an existing cell.
 
     Args:
         notebook_path: Path to the target notebook
@@ -206,7 +233,7 @@ def _edit_cell(
         source: New cell content
 
     Returns:
-        List of execution outputs or error message if cell not found
+        Cell id if successful, or an error message if not
     """
     nb_manager = NotebookManager(notebook_path)
     if not nb_manager.update_cell_source(id=id, new_source=source):
@@ -217,11 +244,11 @@ def _edit_cell(
             )
         ]
 
-    # Execute the modified cell
-    executed_nb_json = nb_manager.execute_cell_by_id(id, {})
     nb_manager.save_notebook()
 
-    return [output.output for nb in executed_nb_json for output in nb.outputs]
+    return [
+        types.TextContent(type="text", text=f"Cell with id {id} updated successfully."),
+    ]
 
 
 def _read_notebook(
@@ -290,6 +317,26 @@ def _read_cell_output(
             )
 
     return results
+
+
+def _execute_cell(
+    notebook_path: str,
+    cell_id: str,
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    """Executes a specific cell in a notebook and returns its output.
+
+    Args:
+        notebook_path: Path to the notebook
+        cell_id: ID of the target cell
+
+    Returns:
+        Cell outputs
+    """
+    nb_manager = NotebookManager(notebook_path)
+    executed_nb_json = nb_manager.execute_cell_by_id(cell_id, {})
+    nb_manager.save_notebook()
+
+    return [output.output for nb in executed_nb_json for output in nb.outputs]
 
 
 async def run(transport_type="stdio", port=8000):
