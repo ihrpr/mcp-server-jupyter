@@ -8,7 +8,7 @@ An MCP server for managing and interacting with Jupyter notebooks programmatical
 
 ### Tools
 
-The server provides five tools for notebook manipulation:
+The server provides six tools for notebook manipulation:
 
 1. `read_notebook_with_outputs`: Read a notebook's content including cell outputs
 
@@ -35,10 +35,17 @@ The server provides five tools for notebook manipulation:
      - `position` (integer): insertion index (-1 to append)
 
 5. `edit_cell`: Modify existing cell content
+
+   - Required:
+     - `notebook_path` (string)
+     - `cell_id` (string): Unique ID of the cell to edit
+     - `source` (string)
+
+6. `execute_cell`: Execute a specific cell and return its output
    - Required:
      - `notebook_path` (string)
      - `cell_id` (string)
-     - `source` (string)
+   - Useful for verifying cell execution and output
 
 ## Usage with Claude Desktop
 
