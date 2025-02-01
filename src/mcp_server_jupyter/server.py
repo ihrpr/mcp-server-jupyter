@@ -281,7 +281,7 @@ def _read_notebook(
                     types.TextContent(
                         type="text", text=f"Output of cell {nb.cell_id}:"
                     ),
-                    *nb.outputs,
+                    *(output.output for output in nb.outputs),
                 ]
             )
 
@@ -312,7 +312,7 @@ def _read_cell_output(
                     types.TextContent(
                         type="text", text=f"Output of cell {nb.cell_id}:"
                     ),
-                    *nb.outputs,
+                    *(output.output for output in nb.outputs),
                 ]
             )
 
